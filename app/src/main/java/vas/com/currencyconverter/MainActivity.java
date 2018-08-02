@@ -11,7 +11,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         CurrencyConverter.calculate(10, "BRL", "USD", new CurrencyConverter.Callback() {
             @Override
-            public void onValueCalculated(double value, Exception e) {
+            public void onValueCalculated(Double value, Exception e) {
 
             }
         });

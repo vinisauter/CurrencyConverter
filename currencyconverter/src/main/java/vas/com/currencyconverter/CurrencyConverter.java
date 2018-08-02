@@ -52,6 +52,10 @@ public class CurrencyConverter {
         }
     }
 
+    public interface Callback {
+        void onValueCalculated(Double value, Exception e);
+    }
+
     public static String getCurrencySymbol(String currencyCode) {
         Currency currency = Currency.getInstance(currencyCode);
         return currency.getSymbol(currencyLocaleMap.get(currency));
@@ -70,7 +74,7 @@ public class CurrencyConverter {
     public static void calculate(final double value, final String valueCurrency, final String desiredCurrency, final Callback callback) {
         if (rates == null) {
             AsyncTask<Void, Void, Exception> task = new AsyncTask<Void, Void, Exception>() {
-                Double returnValue = 0D;
+                Double returnValue = null;
 
                 @Override
                 protected Exception doInBackground(Void... params) {
@@ -95,53 +99,47 @@ public class CurrencyConverter {
                 callback.onValueCalculated(calculate(value, valueCurrency, desiredCurrency), null);
             } catch (Exception e) {
                 e.printStackTrace();
-                callback.onValueCalculated(0D, e);
+                callback.onValueCalculated(null, e);
             }
 
     }
 
-    public interface Callback {
-        void onValueCalculated(Double value, Exception e);
-    }
-
     private static void generateRates() throws Exception {
-        if (rates == null) {
-            // EU Bank Currency Rate data source URL
-            URL url = new URL("http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml");
-            InputStream stream = url.openStream();
-            SAXParserFactory spf = SAXParserFactory.newInstance();
-            SAXParser sp = spf.newSAXParser();
+        // EU Bank Currency Rate data source URL
+        URL url = new URL("http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml");
+        InputStream stream = url.openStream();
+        SAXParserFactory spf = SAXParserFactory.newInstance();
+        SAXParser sp = spf.newSAXParser();
 
-            XMLReader xr = sp.getXMLReader();
-            xr.setContentHandler(new DefaultHandler() {
-                @Override
-                public void startElement(String uri, String localName, String qName, Attributes attributes) {
-                    Log.d(TAG, "start element: localname=" + localName);
-                    for (int i = 0; i < attributes.getLength(); i++) {
-                        Log.d(TAG, "start element: attr=" + attributes.getLocalName(i) + " value=" + attributes.getValue(i));
-                    }
-
-                    if ("Cube".equals(localName)) {
-                        String name = null;
-                        Double rate = null;
-                        for (int i = 0; i < attributes.getLength(); i++) {
-                            if ("time".equals(attributes.getLocalName(i))) {
-                                time = attributes.getValue(i);
-                            } else if ("currency".equals(attributes.getLocalName(i))) {
-                                name = attributes.getValue(i);
-                            } else if ("rate".equals(attributes.getLocalName(i))) {
-                                rate = Double.parseDouble(attributes.getValue(i));
-                            }
-                        }
-                        // add new element in the list
-                        if (name != null)
-                            rates.put(name, rate);
-                    }
+        XMLReader xr = sp.getXMLReader();
+        xr.setContentHandler(new DefaultHandler() {
+            @Override
+            public void startElement(String uri, String localName, String qName, Attributes attributes) {
+                Log.d(TAG, "start element: localname=" + localName);
+                for (int i = 0; i < attributes.getLength(); i++) {
+                    Log.d(TAG, "start element: attr=" + attributes.getLocalName(i) + " value=" + attributes.getValue(i));
                 }
 
-            });
-            xr.parse(new InputSource(stream));
-        }
+                if ("Cube".equals(localName)) {
+                    String name = null;
+                    Double rate = null;
+                    for (int i = 0; i < attributes.getLength(); i++) {
+                        if ("time".equals(attributes.getLocalName(i))) {
+                            time = attributes.getValue(i);
+                        } else if ("currency".equals(attributes.getLocalName(i))) {
+                            name = attributes.getValue(i);
+                        } else if ("rate".equals(attributes.getLocalName(i))) {
+                            rate = Double.parseDouble(attributes.getValue(i));
+                        }
+                    }
+                    // add new element in the list
+                    if (name != null)
+                        rates.put(name, rate);
+                }
+            }
+
+        });
+        xr.parse(new InputSource(stream));
     }
 
     private static Double calculate(Double value, String valueCurrency, String desiredCurrency) {
