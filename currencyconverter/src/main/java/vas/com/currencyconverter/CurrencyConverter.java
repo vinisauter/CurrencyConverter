@@ -56,6 +56,10 @@ public class CurrencyConverter {
         void onValueCalculated(Double value, Exception e);
     }
 
+    public static String getCurrencyFlag(String currencyCode) {
+        return "https://www.ecb.europa.eu/shared/img/flags/" + currencyCode + ".gif";
+    }
+
     public static String getCurrencySymbol(String currencyCode) {
         Currency currency = Currency.getInstance(currencyCode);
         return currency.getSymbol(currencyLocaleMap.get(currency));
