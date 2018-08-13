@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Currency;
 import java.util.HashMap;
@@ -30,15 +31,18 @@ import static android.content.ContentValues.TAG;
  * ...
  */
 
-@SuppressWarnings("unused")
-public class CurrencyConverter {
+@SuppressWarnings({"unused", "WeakerAccess"})
+public class CurrencyConverter extends AsyncTask<Void, Void, Exception> {
 
     private static SortedMap<Currency, Locale> currencyLocaleMap;
     private static String time = null;
     private static HashMap<String, Double> rates = null;
+    private static Calendar ratesDate = null;
+
 
     static {
         currencyLocaleMap = new TreeMap<>(new Comparator<Currency>() {
+            @Override
             public int compare(Currency c1, Currency c2) {
                 return c1.getCurrencyCode().compareTo(c2.getCurrencyCode());
             }
@@ -52,12 +56,54 @@ public class CurrencyConverter {
         }
     }
 
+    Double returnValue = null;
+    final double value;
+    final String valueCurrency;
+    final String desiredCurrency;
+    final Callback callback;
+
+    public CurrencyConverter(final double value, final String valueCurrency, final String desiredCurrency, final Callback callback) {
+        this.value = value;
+        this.valueCurrency = valueCurrency;
+        this.desiredCurrency = desiredCurrency;
+        this.callback = callback;
+    }
+
+    @Override
+    protected void onPreExecute() {
+        returnValue = null;
+    }
+
+    @Override
+    protected Exception doInBackground(Void... params) {
+        try {
+            generateRates();
+            returnValue = calculate(value, valueCurrency, desiredCurrency);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return e;
+        }
+        return null;
+    }
+
+    @Override
+    protected void onPostExecute(Exception e) {
+        callback.onValueCalculated(returnValue, e);
+    }
+
     public interface Callback {
         void onValueCalculated(Double value, Exception e);
     }
 
     public static String getCurrencyFlag(String currencyCode) {
         return "https://www.ecb.europa.eu/shared/img/flags/" + currencyCode + ".gif";
+    }
+
+    public static String formatCurrencyValue(String currencyCode, double value) {
+        Currency currency = Currency.getInstance(currencyCode);
+        NumberFormat format = NumberFormat.getCurrencyInstance(Locale.getDefault());
+        format.setCurrency(currency);
+        return format.format(value);
     }
 
     public static String getCurrencySymbol(String currencyCode) {
@@ -76,27 +122,8 @@ public class CurrencyConverter {
     }
 
     public static void calculate(final double value, final String valueCurrency, final String desiredCurrency, final Callback callback) {
-        if (rates == null) {
-            AsyncTask<Void, Void, Exception> task = new AsyncTask<Void, Void, Exception>() {
-                Double returnValue = null;
-
-                @Override
-                protected Exception doInBackground(Void... params) {
-                    try {
-                        generateRates();
-                        returnValue = calculate(value, valueCurrency, desiredCurrency);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return e;
-                    }
-                    return null;
-                }
-
-                @Override
-                protected void onPostExecute(Exception e) {
-                    callback.onValueCalculated(returnValue, e);
-                }
-            };
+        if (shouldGenerateRates()) {
+            CurrencyConverter task = new CurrencyConverter(value, valueCurrency, desiredCurrency, callback);
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } else
             try {
@@ -108,7 +135,24 @@ public class CurrencyConverter {
 
     }
 
+    private static boolean shouldGenerateRates() {
+        if (ratesDate != null) {
+            Calendar today = Calendar.getInstance();
+            boolean isSameDay = ratesDate.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                    ratesDate.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR);
+            return !isSameDay;
+        }
+        return true;
+    }
+
+    /***
+     *  http://www.floatrates.com/json-feeds.html
+     *  http://www.floatrates.com/daily/brl.json
+     *  http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml
+     * @throws Exception if you can not get the rates
+     */
     private static void generateRates() throws Exception {
+        rates = new HashMap<>();
         // EU Bank Currency Rate data source URL
         URL url = new URL("http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml");
         InputStream stream = url.openStream();
@@ -144,13 +188,16 @@ public class CurrencyConverter {
 
         });
         xr.parse(new InputSource(stream));
+        ratesDate = Calendar.getInstance();
     }
 
-    private static Double calculate(Double value, String valueCurrency, String desiredCurrency) {
+    private static Double calculate(Double value, String valueCurrency, String desiredCurrency) throws Exception {
         Double rateValue = rates.get(valueCurrency);
         Double rateDesired = rates.get(desiredCurrency);
-
-        return rateValue == 0 ? 0 : rateDesired / rateValue * value;
+        if (rateValue != null && rateDesired != null)
+            return rateValue == 0 ? 0 : rateDesired / rateValue * value;
+        else
+            throw new Exception("Currency not found.");
     }
 
 }
