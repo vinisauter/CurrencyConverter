@@ -1,6 +1,7 @@
 package vas.com.currencyconverter;
 
 import android.os.AsyncTask;
+import android.util.JsonReader;
 import android.util.Log;
 
 import org.xml.sax.Attributes;
@@ -9,6 +10,7 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -34,8 +36,7 @@ import static android.content.ContentValues.TAG;
 @SuppressWarnings({"unused", "WeakerAccess"})
 public class CurrencyConverter extends AsyncTask<Void, Void, Exception> {
 
-    private static SortedMap<Currency, Locale> currencyLocaleMap;
-    private static String time = null;
+    private static SortedMap<Currency, ArrayList<Locale>> currencyLocaleMap;
     private static HashMap<String, Double> rates = null;
     private static Calendar ratesDate = null;
 
@@ -50,7 +51,11 @@ public class CurrencyConverter extends AsyncTask<Void, Void, Exception> {
         for (Locale locale : Locale.getAvailableLocales()) {
             try {
                 Currency currency = Currency.getInstance(locale);
-                currencyLocaleMap.put(currency, locale);
+                if (!currencyLocaleMap.containsKey(currency)) {
+                    ArrayList<Locale> array = new ArrayList<>();
+                    array.add(locale);
+                    currencyLocaleMap.put(currency, array);
+                } else currencyLocaleMap.get(currency).add(locale);
             } catch (Exception ignored) {
             }
         }
@@ -77,7 +82,7 @@ public class CurrencyConverter extends AsyncTask<Void, Void, Exception> {
     @Override
     protected Exception doInBackground(Void... params) {
         try {
-            generateRates();
+            generateRatesFromFloatRates();
             returnValue = calculate(value, valueCurrency, desiredCurrency);
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,9 +111,17 @@ public class CurrencyConverter extends AsyncTask<Void, Void, Exception> {
         return format.format(value);
     }
 
+    public static ArrayList<Locale> getCurrencyLocale(Currency currencyCode) {
+        return currencyLocaleMap.get(currencyCode);
+    }
+
     public static String getCurrencySymbol(String currencyCode) {
         Currency currency = Currency.getInstance(currencyCode);
-        return currency.getSymbol(currencyLocaleMap.get(currency));
+        if (currencyLocaleMap.get(currency).size() > 0) {
+            Locale locale = currencyLocaleMap.get(currency).get(0);
+            return currency.getSymbol(locale);
+        }
+        return "";
     }
 
     public static List<Currency> getCurrencyList() {
@@ -119,6 +132,10 @@ public class CurrencyConverter extends AsyncTask<Void, Void, Exception> {
         NumberFormat format = NumberFormat.getCurrencyInstance(Locale.getDefault());
         format.setCurrency(Currency.getInstance(currencyCode));
         return format.format(number);
+    }
+
+    public static void calculate(final double value, final Currency valueCurrency, final Currency desiredCurrency, final Callback callback) {
+        calculate(value, valueCurrency.toString(), desiredCurrency.toString(), callback);
     }
 
     public static void calculate(final double value, final String valueCurrency, final String desiredCurrency, final Callback callback) {
@@ -135,6 +152,11 @@ public class CurrencyConverter extends AsyncTask<Void, Void, Exception> {
 
     }
 
+    public static void reset() {
+        ratesDate = null;
+        rates = null;
+    }
+
     private static boolean shouldGenerateRates() {
         if (ratesDate != null) {
             Calendar today = Calendar.getInstance();
@@ -147,11 +169,52 @@ public class CurrencyConverter extends AsyncTask<Void, Void, Exception> {
 
     /***
      *  http://www.floatrates.com/json-feeds.html
-     *  http://www.floatrates.com/daily/brl.json
-     *  http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml
+     *
+     *  @throws Exception if you can not get the rates
+     */
+    private static void generateRatesFromFloatRates() throws Exception {
+        rates = new HashMap<>();
+        rates.put("BRL", 1D);
+
+        URL url = new URL("http://www.floatrates.com/daily/brl.json");
+        InputStream stream = url.openStream();
+
+        JsonReader reader = new JsonReader(new InputStreamReader(stream));
+        reader.setLenient(true);
+        reader.beginObject();
+        while (reader.hasNext()) {
+            String codeName = reader.nextName();
+            reader.beginObject();
+            String code = null;
+            double rate = 0;
+            while (reader.hasNext()) {
+                String name = reader.nextName();
+                switch (name) {
+                    case "code":
+                        code = reader.nextString();
+                        break;
+                    case "rate":
+                        rate = reader.nextDouble();
+                        break;
+                    default:
+                        reader.skipValue();
+                        break;
+                }
+            }
+            reader.endObject();
+            if (code != null)
+                rates.put(code, rate);
+        }
+        reader.endObject();
+        ratesDate = Calendar.getInstance();
+    }
+
+    /**
+     * http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml
+     *
      * @throws Exception if you can not get the rates
      */
-    private static void generateRates() throws Exception {
+    private static void generateRatesFromECB() throws Exception {
         rates = new HashMap<>();
         // EU Bank Currency Rate data source URL
         URL url = new URL("http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml");
@@ -172,9 +235,10 @@ public class CurrencyConverter extends AsyncTask<Void, Void, Exception> {
                     String name = null;
                     Double rate = null;
                     for (int i = 0; i < attributes.getLength(); i++) {
-                        if ("time".equals(attributes.getLocalName(i))) {
-                            time = attributes.getValue(i);
-                        } else if ("currency".equals(attributes.getLocalName(i))) {
+//                        if ("time".equals(attributes.getLocalName(i))) {
+//                            time = attributes.getValue(i);
+//                        } else
+                        if ("currency".equals(attributes.getLocalName(i))) {
                             name = attributes.getValue(i);
                         } else if ("rate".equals(attributes.getLocalName(i))) {
                             rate = Double.parseDouble(attributes.getValue(i));
