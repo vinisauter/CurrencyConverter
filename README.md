@@ -1,5 +1,6 @@
 # CurrencyConverter
 
+[![Android Arsenal]( https://img.shields.io/badge/Android%20Arsenal-CurrencyConverter-green.svg?style=flat )]( https://android-arsenal.com/details/1/7070 )
 [![](https://jitpack.io/v/vinisauter/CurrencyConverter.svg)](https://jitpack.io/#vinisauter/CurrencyConverter)
 [![API](https://img.shields.io/badge/API-14%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=14)
 
