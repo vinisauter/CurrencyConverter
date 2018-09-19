@@ -1,5 +1,6 @@
 # CurrencyConverter
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/0a9a61b3dc7c417b8d570af084681900)](https://app.codacy.com/app/vinisauter/CurrencyConverter?utm_source=github.com&utm_medium=referral&utm_content=vinisauter/CurrencyConverter&utm_campaign=Badge_Grade_Dashboard)
 [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-CurrencyConverter-brightgreen.svg?style=flat)](https://android-arsenal.com/details/1/7070) 
 [![](https://jitpack.io/v/vinisauter/CurrencyConverter.svg)](https://jitpack.io/#vinisauter/CurrencyConverter)
 [![API](https://img.shields.io/badge/API-14%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=14)
