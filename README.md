@@ -1,5 +1,6 @@
 # CurrencyConverter
 
+[![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-CurrencyConverter-brightgreen.svg?style=flat)](https://android-arsenal.com/details/1/7070) 
 [![](https://jitpack.io/v/vinisauter/CurrencyConverter.svg)](https://jitpack.io/#vinisauter/CurrencyConverter)
 [![API](https://img.shields.io/badge/API-14%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=14)
 
@@ -53,3 +54,8 @@ Reset data if necessary:
 ```
  CurrencyConverter.reset();
 ```
+
+# Donation
+
+[![ko-fi](https://www.ko-fi.com/img/donate_sm.png)](https://ko-fi.com/S6S8JJNM)
+
