@@ -22,7 +22,7 @@ and add the repository's url to the app's build.gradle file.
 
 ```
 dependencies {
-   implementation 'com.github.vinisauter:CurrencyConverter:master-SNAPSHOT'
+   implementation 'com.github.vinisauter:CurrencyConverter:1.0'
     // Other dependencies your app might use
 }
 ```
