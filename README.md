@@ -57,5 +57,7 @@ Reset data if necessary:
 
 # Donation
 
+[![paypal](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=ESPRDCXCN3RD2&currency_code=BRL&source=url)
+
 [![ko-fi](https://www.ko-fi.com/img/donate_sm.png)](https://ko-fi.com/S6S8JJNM)
 
